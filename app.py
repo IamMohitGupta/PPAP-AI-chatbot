@@ -177,8 +177,9 @@ init_session_state()
 # ============================================================================
 
 with st.sidebar:
-    st.markdown("### 🔒 Medtronic Internal Use Only")
-    st.markdown("**Secure Network** | **Internal LLM (Medtronic GPT)**")
+    st.image("assets/images.png", width=150)
+    st.markdown("### 🔒 Internal Use Only")
+    st.caption("Medtronic • Secure Network • Internal LLM")
     st.divider()
 
     st.header("PPAP Case Workspace")
@@ -274,7 +275,11 @@ if not current_case:
     - 🔒 No cloud storage - all data remains on-premises
     """)
 else:
+    
     st.title(f"PPAP Review: {current_case['part_number']} Rev {current_case['revision']}")
+
+    st.divider()
+
 
     # Tab navigation
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
