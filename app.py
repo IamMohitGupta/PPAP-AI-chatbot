@@ -210,12 +210,61 @@ with st.sidebar:
             revision = st.text_input("Revision", placeholder="e.g., A, B, C")
             supplier = st.text_input("Supplier", placeholder="e.g., Supplier XYZ")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                qil = st.selectbox("QIL", ["Yes", "No"])
-                pc = st.selectbox("PC", ["Yes", "No"])
-            with col2:
-                ctf = st.selectbox("CTF", ["Yes", "No"])
+            # col1, col2 = st.columns(2)
+            # with col1:
+                # Display labels (bold 3 & 4), but map to numeric values
+            qil_options = {
+                "1": 1,
+                "2": 2,
+                "**3 (In Scope)**": 3,
+                "**4 (In Scope)**": 4,
+                "5": 5,
+                "6": 6,
+                "7": 7,
+            }
+
+            qil_label = st.selectbox(
+                "QIL (Quality Impact Level)",
+                options=list(qil_options.keys()),
+                help="QIL 3 & 4 are within project scope"
+            )
+            qil = qil_options[qil_label]
+
+            pc_count = st.number_input(
+            "PC (Number of Dimensions)",
+            min_value=0,
+            step=1
+            )
+
+            ctf_count = st.number_input(
+                "CTF (Number of Dimensions)",
+                min_value=0,
+                step=1
+            )
+            
+            
+            pc_dimensions = []
+            if pc_count > 0:
+                st.markdown("**PC Dimensions**")
+                for i in range(pc_count):
+                    value = st.number_input(
+                        f"PC Dimension {i + 1}",
+                        key=f"pc_dim_{i}",
+                        step=0.01
+                    )
+                    pc_dimensions.append(value)
+
+
+            ctf_dimensions = []
+            if ctf_count > 0:
+                st.markdown("**CTF Dimensions**")
+                for i in range(ctf_count):
+                    value = st.number_input(
+                        f"CTF Dimension {i + 1}",
+                        key=f"ctf_dim_{i}",
+                        step=0.01
+                    )
+                    ctf_dimensions.append(value)
 
             submitted = st.form_submit_button("Create Case")
 
@@ -275,7 +324,7 @@ if not current_case:
     - 🔒 No cloud storage - all data remains on-premises
     """)
 else:
-    
+
     st.title(f"PPAP Review: {current_case['part_number']} Rev {current_case['revision']}")
 
     st.divider()
