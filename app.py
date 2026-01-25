@@ -169,6 +169,29 @@ def mock_pq_analysis():
         'validation_notes': 'Production process demonstrated adequate capability for all critical dimensions.'
     }
 
+def render_dimension_grid(prefix, count, step=0.01):
+    """
+    Renders numeric inputs in a 3-column grid.
+    Returns a list of entered values.
+    """
+    values = []
+
+    for i in range(0, count, 3):
+        cols = st.columns(3)
+        for j in range(3):
+            idx = i + j
+            if idx < count:
+                with cols[j]:
+                    val = st.number_input(
+                        f"{prefix} Dimension {idx + 1}",
+                        key=f"{prefix.lower()}_dim_{idx}",
+                        step=step
+                    )
+                    values.append(val)
+
+    return values
+
+
 # Initialize session state
 init_session_state()
 
@@ -246,25 +269,13 @@ with st.sidebar:
             pc_dimensions = []
             if pc_count > 0:
                 st.markdown("**PC Dimensions**")
-                for i in range(pc_count):
-                    value = st.number_input(
-                        f"PC Dimension {i + 1}",
-                        key=f"pc_dim_{i}",
-                        step=0.01
-                    )
-                    pc_dimensions.append(value)
+                pc_dimensions = render_dimension_grid("PC", pc_count)
 
 
             ctf_dimensions = []
             if ctf_count > 0:
                 st.markdown("**CTF Dimensions**")
-                for i in range(ctf_count):
-                    value = st.number_input(
-                        f"CTF Dimension {i + 1}",
-                        key=f"ctf_dim_{i}",
-                        step=0.01
-                    )
-                    ctf_dimensions.append(value)
+                ctf_dimensions = render_dimension_grid("CTF", ctf_count)
 
             submitted = st.form_submit_button("Create Case")
 
