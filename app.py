@@ -24,6 +24,9 @@ st.set_page_config(
 def init_session_state():
     """Initialize all session state variables"""
 
+    if "page" not in st.session_state:
+        st.session_state.page = "CASE_SETUP"  # or "PPAP_WORKSPACE"
+
     if 'ppap_cases' not in st.session_state:
         st.session_state.ppap_cases = {}
 
@@ -199,149 +202,220 @@ init_session_state()
 # SIDEBAR - PPAP Case Workspace
 # ============================================================================
 
-with st.sidebar:
-    st.image("assets/images.png", width=150)
-    st.markdown("### 🔒 Internal Use Only")
-    st.caption("Medtronic • Secure Network • Internal LLM")
-    st.divider()
+# with st.sidebar:
+#     st.image("assets/images.png", width=150)
+#     st.markdown("### 🔒 Internal Use Only")
+#     st.caption("Medtronic • Secure Network • Internal LLM")
+#     st.divider()
 
-    st.header("PPAP Case Workspace")
+#     st.header("PPAP Case Workspace")
 
-    # Case selection or creation
-    if len(st.session_state.ppap_cases) > 0:
-        case_options = {
-            case_id: f"{case['part_number']} Rev {case['revision']}"
-            for case_id, case in st.session_state.ppap_cases.items()
-        }
+#     # Case selection or creation
+#     if len(st.session_state.ppap_cases) > 0:
+#         case_options = {
+#             case_id: f"{case['part_number']} Rev {case['revision']}"
+#             for case_id, case in st.session_state.ppap_cases.items()
+#         }
 
-        selected_case = st.selectbox(
-            "Select PPAP Case",
-            options=['Create New Case'] + list(case_options.keys()),
-            format_func=lambda x: x if x == 'Create New Case' else case_options[x]
-        )
+#         selected_case = st.selectbox(
+#             "Select PPAP Case",
+#             options=['Create New Case'] + list(case_options.keys()),
+#             format_func=lambda x: x if x == 'Create New Case' else case_options[x]
+#         )
 
-        if selected_case != 'Create New Case':
-            st.session_state.current_case_id = selected_case
-    else:
-        selected_case = 'Create New Case'
+#         if selected_case != 'Create New Case':
+#             st.session_state.current_case_id = selected_case
+#             st.session_state.page = "PPAP_WORKSPACE"
+#             st.rerun()
+#     else:
+#         selected_case = 'Create New Case'
 
-    # Create new case form
-    if selected_case == 'Create New Case':
-        st.subheader("Create New PPAP Case")
-        with st.form("new_case_form"):
-            part_number = st.text_input("Part Number", placeholder="e.g., MED-12345")
-            revision = st.text_input("Revision", placeholder="e.g., A, B, C")
-            supplier = st.text_input("Supplier", placeholder="e.g., Supplier XYZ")
+#     # Create new case form
+#     if selected_case == 'Create New Case':
+#         st.subheader("Create New PPAP Case")
+#         with st.form("new_case_form"):
+#             part_number = st.text_input("Part Number", placeholder="e.g., MED-12345")
+#             revision = st.text_input("Revision", placeholder="e.g., A, B, C")
+#             supplier = st.text_input("Supplier", placeholder="e.g., Supplier XYZ")
 
-            # col1, col2 = st.columns(2)
-            # with col1:
-                # Display labels (bold 3 & 4), but map to numeric values
-            qil_options = {
-                "1": 1,
-                "2": 2,
-                "**3 (In Scope)**": 3,
-                "**4 (In Scope)**": 4,
-                "5": 5,
-                "6": 6,
-                "7": 7,
-            }
+#             # col1, col2 = st.columns(2)
+#             # with col1:
+#                 # Display labels (bold 3 & 4), but map to numeric values
+#             qil_options = {
+#                 "1": 1,
+#                 "2": 2,
+#                 "**3 (In Scope)**": 3,
+#                 "**4 (In Scope)**": 4,
+#                 "5": 5,
+#                 "6": 6,
+#                 "7": 7,
+#             }
 
-            qil_label = st.selectbox(
-                "QIL (Quality Impact Level)",
-                options=list(qil_options.keys()),
-                help="QIL 3 & 4 are within project scope"
-            )
-            qil = qil_options[qil_label]
+#             qil_label = st.selectbox(
+#                 "QIL (Quality Impact Level)",
+#                 options=list(qil_options.keys()),
+#                 help="QIL 3 & 4 are within project scope"
+#             )
+#             qil = qil_options[qil_label]
 
-            pc_count = st.number_input(
-            "PC (Number of Dimensions)",
-            min_value=0,
-            step=1
-            )
+#             pc_count = st.number_input(
+#             "PC (Number of Dimensions)",
+#             min_value=0,
+#             step=1
+#             )
 
-            ctf_count = st.number_input(
-                "CTF (Number of Dimensions)",
-                min_value=0,
-                step=1
-            )
+#             ctf_count = st.number_input(
+#                 "CTF (Number of Dimensions)",
+#                 min_value=0,
+#                 step=1
+#             )
             
             
-            pc_dimensions = []
-            if pc_count > 0:
-                st.markdown("**PC Dimensions**")
-                pc_dimensions = render_dimension_grid("PC", pc_count)
+#             pc_dimensions = []
+#             if pc_count > 0:
+#                 st.markdown("**PC Dimensions**")
+#                 pc_dimensions = render_dimension_grid("PC", pc_count)
 
 
-            ctf_dimensions = []
-            if ctf_count > 0:
-                st.markdown("**CTF Dimensions**")
-                ctf_dimensions = render_dimension_grid("CTF", ctf_count)
+#             ctf_dimensions = []
+#             if ctf_count > 0:
+#                 st.markdown("**CTF Dimensions**")
+#                 ctf_dimensions = render_dimension_grid("CTF", ctf_count)
 
-            submitted = st.form_submit_button("Create Case")
+#             submitted = st.form_submit_button("Create Case")
 
-            if submitted:
-                if part_number and revision and supplier:
-                    case_id = create_new_case(part_number, revision, supplier, qil, pc, ctf)
-                    st.success(f"Created case: {case_id}")
+#             if submitted:
+#                 if part_number and revision and supplier:
+#                     case_id = create_new_case(part_number, revision, supplier, qil, pc_count, ctf_count)
+#                     st.session_state.page = "PPAP_WORKSPACE"
+#                     st.success(f"Created case: {case_id}")
+#                     st.rerun()
+#                 else:
+#                     st.error("Please fill all required fields")
+
+#     # Display current case metadata
+#     current_case = get_current_case()
+#     if current_case:
+#         st.divider()
+#         st.subheader("Current Case")
+#         st.markdown(f"**Part Number:** {current_case['part_number']}")
+#         st.markdown(f"**Revision:** {current_case['revision']}")
+#         st.markdown(f"**Supplier:** {current_case['supplier']}")
+#         st.markdown(f"**Process:** {current_case['process']}")
+
+#         col1, col2, col3 = st.columns(3)
+#         with col1:
+#             st.metric("QIL", current_case['qil'])
+#         with col2:
+#             st.metric("PC", current_case['pc'])
+#         with col3:
+#             st.metric("CTF", current_case['ctf'])
+
+#         st.caption(f"Created: {current_case['created_date'].strftime('%Y-%m-%d %H:%M')}")
+
+if st.session_state.page == "CASE_SETUP":
+
+    st.title("Generative AI Tool for PPAP Document Review")
+    st.markdown("### Medtronic Capstone Project")
+    st.markdown("---")
+
+    # Center the content
+    left, center, right = st.columns([1, 2, 1])
+
+    with center:
+        with st.container(border=True):
+            st.image("assets/images.png", width=120)
+            st.markdown("### 🔒 Internal Use Only")
+            st.caption("Medtronic • Secure Network • Internal LLM")
+            st.divider()
+
+            st.header("PPAP Case Setup")
+
+            # -------------------------
+            # Select existing case
+            # -------------------------
+            if len(st.session_state.ppap_cases) > 0:
+                case_options = {
+                    case_id: f"{case['part_number']} Rev {case['revision']}"
+                    for case_id, case in st.session_state.ppap_cases.items()
+                }
+
+                selected_case = st.selectbox(
+                    "Select PPAP Case",
+                    options=["Create New Case"] + list(case_options.keys()),
+                    format_func=lambda x: x if x == "Create New Case" else case_options[x]
+                )
+
+                if selected_case != "Create New Case":
+                    st.session_state.current_case_id = selected_case
+                    st.session_state.page = "PPAP_WORKSPACE"
                     st.rerun()
-                else:
-                    st.error("Please fill all required fields")
+            else:
+                selected_case = "Create New Case"
 
-    # Display current case metadata
-    current_case = get_current_case()
-    if current_case:
+            # -------------------------
+            # Create new case
+            # -------------------------
+            if selected_case == "Create New Case":
+                st.subheader("Create New PPAP Case")
+
+                with st.form("new_case_form"):
+                    part_number = st.text_input("Part Number")
+                    revision = st.text_input("Revision")
+                    supplier = st.text_input("Supplier")
+
+                    qil = st.selectbox("QIL", [1, 2, 3, 4, 5, 6, 7])
+                    pc_count = st.number_input("PC (Number of Dimensions)", min_value=0, step=1)
+                    ctf_count = st.number_input("CTF (Number of Dimensions)", min_value=0, step=1)
+
+                    submitted = st.form_submit_button("Create Case")
+
+                    if submitted:
+                        if part_number and revision and supplier:
+                            create_new_case(
+                                part_number,
+                                revision,
+                                supplier,
+                                qil,
+                                pc_count,
+                                ctf_count
+                            )
+                            st.session_state.page = "PPAP_WORKSPACE"
+                            st.rerun()
+                        else:
+                            st.error("Please fill all required fields")
+
+
+elif st.session_state.page == "PPAP_WORKSPACE":
+    with st.sidebar:
+        st.image("assets/images.png", width=150)
+        st.markdown("### 🔒 Internal Use Only")
+        st.caption("Medtronic • Secure Network • Internal LLM")
         st.divider()
-        st.subheader("Current Case")
-        st.markdown(f"**Part Number:** {current_case['part_number']}")
+
+        current_case = get_current_case()
+
+        st.markdown("## PPAP Case Setup")
+        st.markdown(f"**Part:** {current_case['part_number']}")
         st.markdown(f"**Revision:** {current_case['revision']}")
         st.markdown(f"**Supplier:** {current_case['supplier']}")
         st.markdown(f"**Process:** {current_case['process']}")
 
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("QIL", current_case['qil'])
-        with col2:
-            st.metric("PC", current_case['pc'])
-        with col3:
-            st.metric("CTF", current_case['ctf'])
+        col1.metric("QIL", current_case['qil'])
+        col2.metric("PC", current_case['pc'])
+        col3.metric("CTF", current_case['ctf'])
 
-        st.caption(f"Created: {current_case['created_date'].strftime('%Y-%m-%d %H:%M')}")
+        st.divider()
 
-# ============================================================================
-# MAIN CONTENT AREA
-# ============================================================================
-
-if not current_case:
-    st.title("Generative AI Tool for PPAP Document Review")
-    st.markdown("### Medtronic Capstone Project")
-    st.info("👈 Please create or select a PPAP case from the sidebar to begin.")
-
-    st.markdown("---")
-    st.markdown("### System Overview")
-    st.markdown("""
-    This tool automates the review of PPAP (Production Part Approval Process) documentation
-    for **new injection-molded plastic parts only**.
-
-    **Scope:**
-    - ✅ FAIR (First Article Inspection Report)
-    - ✅ OQ (Operational Qualification)
-    - ✅ PQ (Performance Qualification)
-    - ✅ Ballooned Engineering Drawings
-    - ✅ Measurement Data (Excel/Minitab)
-
-    **Security:**
-    - 🔒 Runs exclusively on Medtronic secure internal network
-    - 🔒 Uses internal Medtronic GPT (no external APIs)
-    - 🔒 No cloud storage - all data remains on-premises
-    """)
-else:
-
+        if st.button("⬅ Back to Case Setup"):
+            st.session_state.page = "CASE_SETUP"
+            st.session_state.current_case_id = None
+            st.rerun()
+        
     st.title(f"PPAP Review: {current_case['part_number']} Rev {current_case['revision']}")
-
     st.divider()
 
-
-    # Tab navigation
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📁 Ingestion & Revision",
         "✅ Checklist & Gaps",
@@ -977,3 +1051,52 @@ else:
                         st.markdown(entry['description'])
         else:
             st.info("No activity recorded yet for this PPAP case.")
+
+
+
+
+# ============================================================================
+# MAIN CONTENT AREA
+# ============================================================================
+
+# if not current_case:
+#     st.title("Generative AI Tool for PPAP Document Review")
+#     st.markdown("### Medtronic Capstone Project")
+#     st.info("👈 Please create or select a PPAP case from the sidebar to begin.")
+
+#     st.markdown("---")
+#     st.markdown("### System Overview")
+#     st.markdown("""
+#     This tool automates the review of PPAP (Production Part Approval Process) documentation
+#     for **new injection-molded plastic parts only**.
+
+#     **Scope:**
+#     - ✅ FAIR (First Article Inspection Report)
+#     - ✅ OQ (Operational Qualification)
+#     - ✅ PQ (Performance Qualification)
+#     - ✅ Ballooned Engineering Drawings
+#     - ✅ Measurement Data (Excel/Minitab)
+
+#     **Security:**
+#     - 🔒 Runs exclusively on Medtronic secure internal network
+#     - 🔒 Uses internal Medtronic GPT (no external APIs)
+#     - 🔒 No cloud storage - all data remains on-premises
+#     """)
+# else:
+
+#     st.title(f"PPAP Review: {current_case['part_number']} Rev {current_case['revision']}")
+
+#     st.divider()
+
+# if st.session_state.page == "CASE_SETUP":
+#     st.title("Generative AI Tool for PPAP Document Review")
+#     st.markdown("### Medtronic Capstone Project")
+#     st.info("👈 Create or select a PPAP case from the sidebar to begin.")
+
+# else:
+#     current_case = get_current_case()
+#     st.title(f"PPAP Review: {current_case['part_number']} Rev {current_case['revision']}")
+#     st.divider()
+
+#     # Tab navigation
+    
