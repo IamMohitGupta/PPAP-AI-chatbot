@@ -138,7 +138,7 @@ def add_activity_log(case_id, activity_type, description):
         'description': description
     })
 
-def create_new_case(part_number, revision, supplier, qil, pc, ctf):
+def create_new_case(part_number, revision, supplier, qil, pc, ctf, pc_dimensions, ctf_dimensions):
     """Create a new PPAP case"""
     case_id = f"{part_number}_{revision}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
@@ -297,7 +297,7 @@ if st.session_state.page in ["SURVEY_WELCOME", "SURVEY_Q1", "SURVEY_Q2", "SURVEY
 
         with st.container(border=True):
             try:
-                st.image("images.png", width=120)
+                st.image("assets/images.png", width=120)
             except:
                 pass  # Image not found, continue without it
             st.markdown("### 🔒 Internal Use Only")
@@ -669,7 +669,7 @@ elif st.session_state.page == "CASE_SETUP":
     with center:
         with st.container(border=True):
             try:
-                st.image("images.png", width=120)
+                st.image("assets/images.png", width=120)
             except:
                 pass  # Image not found, continue without it
             st.markdown("### 🔒 Internal Use Only")
@@ -727,24 +727,97 @@ elif st.session_state.page == "CASE_SETUP":
 
                     if submitted:
                         if part_number and revision and supplier:
-                            create_new_case(
-                                part_number,
-                                revision,
-                                supplier,
-                                qil,
-                                pc_count,
-                                ctf_count
-                            )
-                            st.session_state.page = "PPAP_WORKSPACE"
+                            # Store metadata + counts only
+                            st.session_state.new_case_draft = {
+                                "part_number": part_number,
+                                "revision": revision,
+                                "supplier": supplier,
+                                "qil": qil,
+                                "pc_count": int(pc_count),
+                                "ctf_count": int(ctf_count),
+                            }
+
+                            # Move to dimension input step
+                            st.session_state.page = "DIMENSIONS_SETUP"
                             st.rerun()
                         else:
                             st.error("Please fill all required fields")
+
+
+                    # if submitted:
+                    #     if part_number and revision and supplier:
+                    #         create_new_case(
+                    #             part_number,
+                    #             revision,
+                    #             supplier,
+                    #             qil,
+                    #             pc_count,
+                    #             ctf_count
+                    #         )
+                    #         st.session_state.page = "PPAP_WORKSPACE"
+                    #         st.rerun()
+                    #     else:
+                    #         st.error("Please fill all required fields")
 
             st.markdown("---")
 
             if st.button("⬅ Back to Survey"):
                 st.session_state.page = "SURVEY_RESULT"
                 st.rerun()
+
+elif st.session_state.page == "DIMENSIONS_SETUP":
+
+    st.title("Define Critical Dimensions")
+    st.markdown("### PC & CTF Dimension Setup")
+    st.markdown("---")
+
+    # Safety check (important)
+    if "new_case_draft" not in st.session_state:
+        st.warning("No active case draft found. Returning to Case Setup.")
+        st.session_state.page = "CASE_SETUP"
+        st.rerun()
+
+    draft = st.session_state.new_case_draft
+
+    # PC Dimensions
+    if draft["pc_count"] > 0:
+        st.subheader("PC Dimensions")
+        pc_dims = render_dimension_grid("PC", draft["pc_count"])
+    else:
+        pc_dims = []
+
+    st.divider()
+
+    # CTF Dimensions
+    if draft["ctf_count"] > 0:
+        st.subheader("CTF Dimensions")
+        ctf_dims = render_dimension_grid("CTF", draft["ctf_count"])
+    else:
+        ctf_dims = []
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("⬅ Back to Case Setup"):
+            st.session_state.page = "CASE_SETUP"
+            st.rerun()
+
+    with col2:
+        if st.button("✅ Create Case", type="primary"):
+            create_new_case(
+                draft["part_number"],
+                draft["revision"],
+                draft["supplier"],
+                draft["qil"],
+                draft["pc_count"],
+                draft["ctf_count"],
+                pc_dims,
+                ctf_dims,
+            )
+            st.session_state.page = "PPAP_WORKSPACE"
+            st.rerun()
 
 # ============================================================================
 # PPAP WORKSPACE PAGE
@@ -756,7 +829,7 @@ elif st.session_state.page == "PPAP_WORKSPACE":
     # Sidebar with case info
     with st.sidebar:
         try:
-            st.image("images.png", width=150)
+            st.image("assets/images.png", width=150)
         except:
             pass  # Image not found, continue without it
         st.markdown("### 🔒 Internal Use Only")
