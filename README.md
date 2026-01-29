@@ -11,6 +11,7 @@ This is a Streamlit-based UI prototype for automating the review of PPAP (Produc
 - All logic is mocked using Streamlit session state
 - Designed for internal use only - no external APIs or cloud storage
 - Scope limited to new parts only (no legacy or changed parts)
+- **Eligibility Survey:** Users must complete a survey to verify their PPAP is suitable for the system before accessing case creation
 
 ---
 
@@ -27,6 +28,65 @@ This is a Streamlit-based UI prototype for automating the review of PPAP (Produc
 - **Process:** Injection Molding - Plastic Parts Only
 - **Type:** New parts only (no legacy or changed parts)
 - **Metadata:** QIL, PC, CTF tracking
+
+---
+
+## Application Flow
+
+### 1. Eligibility Survey (ppap-survey.py)
+
+Before accessing the PPAP case creation system, users must complete an eligibility survey to ensure their PPAP is suitable for this automated review system.
+
+#### Survey Questions (Sequential)
+
+**Question 1: Process Type and Business Unit**
+- "Is the PPAP associated with molding plastic processes under the Surgical Operation Unit?"
+- **If No:** System not suitable → Show explanation and suggest alternative
+
+**Question 2: Product Classification**
+- "Is the PPAP associated with a new product part?"
+- **If No:** System not suitable → Explain legacy product workflows are different
+
+**Question 3: Process Verification Status**
+- "Is the process output fully verified?"
+- **If No:** Can proceed with warning → Flag that verification must be completed before final approval
+
+**Question 4: Process Parameters**
+- "Will the process be run at fixed set points without a range of process limits or parameters?"
+- **If Yes:** System not suitable → Explain that parameter ranges are required for robust manufacturing
+
+#### Eligibility Logic
+
+**User is ELIGIBLE if:**
+- Q1 = Yes (Molding plastic + Surgical Operation Unit)
+- Q2 = Yes (New product part)
+- Q4 = No (Has parameter ranges, not fixed setpoints)
+
+**User is INELIGIBLE if:**
+- Q1 = No (Different process or business unit)
+- Q2 = No (Legacy product - requires different workflow)
+- Q4 = Yes (Fixed setpoints - insufficient process definition)
+
+#### Survey Features
+
+- **Progress indicator:** Shows "Question X of 4" with progress bar
+- **Contextual help:** Each question includes explanations of terms and requirements
+- **Sequential navigation:** Questions appear one at a time
+- **Eligibility determination:** Automatic evaluation based on responses
+- **Detailed explanations:** Ineligible users receive specific reasons and recommended actions
+- **Survey restart:** Users can restart the survey at any time
+
+#### Ineligibility Explanations
+
+When a user is deemed ineligible, the system provides:
+1. **Specific reasons** explaining which responses caused ineligibility
+2. **Context** on why those criteria matter for PPAP review
+3. **Recommended actions** for next steps (e.g., contact coordinators, establish parameter ranges)
+4. **Support options** to get help or clarification
+
+### 2. PPAP Case Setup (app-current.py)
+
+After passing the eligibility survey, users can create PPAP cases and access the full workspace.
 
 ---
 
@@ -152,7 +212,21 @@ All AI outputs, parsing, and analysis are currently mocked:
 pip install streamlit pandas
 ```
 
-### Running the Application
+### Running the Applications
+
+**Option 1: Eligibility Survey (Standalone)**
+```bash
+cd PPAP-AI-chatbot
+streamlit run ppap-survey.py
+```
+
+**Option 2: Main PPAP Workspace**
+```bash
+cd PPAP-AI-chatbot
+streamlit run app-current.py
+```
+
+**Option 3: Original Prototype**
 ```bash
 cd UI
 streamlit run ppap_review_app.py
@@ -160,14 +234,38 @@ streamlit run ppap_review_app.py
 
 The app will open in your default browser at `http://localhost:8501` (or `8502` if port is in use).
 
+**Note:** Currently, the survey and main workspace are separate applications. They will be integrated in a future update to provide a seamless user flow from eligibility survey to PPAP case creation.
+
 ---
 
 ## Usage Guide
 
-### Creating a PPAP Case
-1. In the sidebar, fill out the "Create New PPAP Case" form
+### Step 1: Complete Eligibility Survey (ppap-survey.py)
+
+**Purpose:** Verify that your PPAP is suitable for the automated review system
+
+1. Click "Begin Eligibility Survey" on the welcome page
+2. Answer 4 sequential questions:
+   - Process type and business unit
+   - Product classification (new vs. legacy)
+   - Process verification status
+   - Process parameter specification
+3. Review your eligibility result:
+   - **If Eligible:** Proceed to PPAP Case Setup
+   - **If Ineligible:** Review explanations and recommended actions
+
+**Eligibility Criteria:**
+- Must be molding plastic processes under Surgical Operation Unit
+- Must be a new product part (not legacy)
+- Must use process parameter ranges (not fixed setpoints)
+
+### Step 2: Creating a PPAP Case (app-current.py)
+
+**Note:** In the integrated version, this will be accessible only after passing the survey
+
+1. On the case setup page, fill out the "Create New PPAP Case" form
 2. Enter Part Number, Revision, and Supplier
-3. Select QIL, PC, and CTF flags
+3. Select QIL level and enter PC/CTF counts
 4. Click "Create Case"
 
 ### Uploading Documents
@@ -192,15 +290,74 @@ The app will open in your default browser at `http://localhost:8501` (or `8502` 
 
 ### Using PPAP Coaching Chat
 1. Navigate to "PPAP Coaching Chat" tab
-2. Type questions in chat input
-3. Use quick question buttons for common queries
-4. Chat maintains context of current PPAP case
+2. Select a document version from the left panel
+3. Type questions in chat input scoped to that specific document version
+4. Chat maintains context per document version
+
+---
+
+## Survey Design Details
+
+### Question Flow and Logic
+
+The eligibility survey uses a **sequential question flow** where each question appears one at a time. This design:
+- Reduces cognitive load on users
+- Provides focused context for each question
+- Allows early exit if user is clearly ineligible
+- Creates a more guided, conversational experience
+
+### Eligibility Decision Tree
+
+```
+Q1: Molding plastic + Surgical Unit?
+├─ No → INELIGIBLE (Wrong process/unit)
+└─ Yes → Continue to Q2
+
+Q2: New product part?
+├─ No → INELIGIBLE (Legacy product - different workflow)
+└─ Yes → Continue to Q3
+
+Q3: Process output verified?
+├─ No → Continue with WARNING (verification needed before approval)
+└─ Yes → Continue to Q4
+
+Q4: Fixed setpoints only (no ranges)?
+├─ Yes → INELIGIBLE (Insufficient process definition)
+└─ No → ELIGIBLE ✅
+```
+
+### Session State Management
+
+The survey uses dedicated session state variables:
+```python
+survey_page: str              # Current page: WELCOME, Q1, Q2, Q3, Q4, RESULT
+survey_responses: dict        # User answers to all 4 questions
+survey_eligible: bool         # Final eligibility determination
+survey_completion_date: datetime  # When survey was completed
+```
+
+### Integration Considerations
+
+When integrating with the main application:
+1. Survey should be the first page users see
+2. Survey eligibility should gate access to case creation
+3. Survey responses should be stored with PPAP case metadata
+4. Users should be able to review their survey responses later
+5. Admin users might bypass survey (future feature)
 
 ---
 
 ## Recent Updates
 
-### Latest Improvements (2026-01-17)
+### Latest Improvements (2026-01-28)
+- **Added Eligibility Survey Page:** New standalone survey to screen PPAPs before case creation
+  - 4 sequential questions to determine system suitability
+  - Detailed eligibility logic based on process type, product classification, and process parameters
+  - Comprehensive explanations for ineligible users with recommended actions
+  - Survey state management and restart capability
+- **Updated documentation:** README now includes survey workflow and eligibility criteria
+
+### Previous Updates (2026-01-17)
 - **Fixed audit log and version history display:** Replaced monospace/code-styled dataframe with clean, readable card-based layouts
 - **Enhanced version history:** Each document version now displays as a bordered card with proper formatting
 - **Improved audit trail:** Activity log now uses icons, better spacing, and readable fonts
@@ -209,6 +366,14 @@ The app will open in your default browser at `http://localhost:8501` (or `8502` 
 ---
 
 ## Future Enhancements (Backend Implementation)
+
+### Immediate Next Steps
+- **Integrate survey with main application:** Combine `ppap-survey.py` and `app-current.py` into unified flow
+  - Survey page as initial entry point
+  - Navigate to case setup only after passing eligibility screening
+  - Store survey responses with PPAP case data
+- **Expand eligibility rules:** Support for legacy products with ticket lookup functionality
+- **Survey response validation:** Add checkboxes or additional context fields for ambiguous cases
 
 ### Planned Features
 - Real AI integration with Medtronic GPT
@@ -219,6 +384,7 @@ The app will open in your default browser at `http://localhost:8501` (or `8502` 
 - User authentication and role management
 - Advanced analytics and reporting
 - Integration with existing Medtronic systems
+- **Legacy product support:** Auto-detection of existing PPAP tickets and documentation merging
 
 ### AI Capabilities to Implement
 - Natural language processing for document parsing
@@ -234,10 +400,18 @@ The app will open in your default browser at `http://localhost:8501` (or `8502` 
 
 ```
 Medtronic/
-├── UI/
-│   └── ppap_review_app.py    # Main Streamlit application
-└── README.md                  # This file
+├── PPAP-AI-chatbot/
+│   ├── ppap-survey.py         # Eligibility survey page (standalone)
+│   ├── app-current.py         # Main PPAP workspace application
+│   └── README.md              # This file
+└── UI/
+    └── ppap_review_app.py     # Original prototype
 ```
+
+**Note:** The application is being modularized:
+- `ppap-survey.py`: Standalone survey page for eligibility screening
+- `app-current.py`: Main PPAP case workspace with document review features
+- These will be integrated into a single application in future updates
 
 ---
 
