@@ -13,6 +13,15 @@ This is a Streamlit-based UI prototype for automating the review of PPAP (Produc
 - Scope limited to new parts only (no legacy or changed parts)
 - **Eligibility Survey:** Users must complete a survey to verify their PPAP is suitable for the system before accessing case creation
 
+### Quick Start
+
+**To run the complete integrated application:**
+```bash
+streamlit run PPAP-AI-chatbot/app-integrated.py
+```
+
+This provides the full workflow: Eligibility Survey → Case Setup (gated) → PPAP Workspace with all features.
+
 ---
 
 ## Project Scope
@@ -33,7 +42,19 @@ This is a Streamlit-based UI prototype for automating the review of PPAP (Produc
 
 ## Application Flow
 
-### 1. Eligibility Survey (ppap-survey.py)
+### Complete Integrated Workflow (app-integrated.py)
+
+The integrated application provides a gated workflow where users must pass an eligibility survey before accessing PPAP case creation:
+
+**Flow:** Survey Welcome → Questions 1-4 → Eligibility Result → Case Setup → PPAP Workspace
+
+**Gating Logic:**
+- If survey answers are **within capacity** (eligible) → "Proceed to PPAP Case Setup" button appears
+- If survey answers are **not within capacity** (ineligible) → No proceed button, only restart survey or contact support
+
+This ensures that only suitable PPAPs enter the review system, preventing wasted effort on incompatible cases.
+
+### 1. Eligibility Survey
 
 Before accessing the PPAP case creation system, users must complete an eligibility survey to ensure their PPAP is suitable for this automated review system.
 
@@ -84,13 +105,44 @@ When a user is deemed ineligible, the system provides:
 3. **Recommended actions** for next steps (e.g., contact coordinators, establish parameter ranges)
 4. **Support options** to get help or clarification
 
-### 2. PPAP Case Setup (app-current.py)
+### 2. PPAP Case Setup
 
-After passing the eligibility survey, users can create PPAP cases and access the full workspace.
+After passing the eligibility survey, users can create PPAP cases with part details (part number, revision, supplier, QIL, PC, CTF).
+
+### 3. PPAP Workspace
+
+Full document review interface with tabs for ingestion, checklist, FAIR/OQ/PQ review, reports, and coaching chat.
 
 ---
 
 ## Features Implemented
+
+### Integrated Application Features
+
+The `app-integrated.py` file combines **all features** from both `ppap-survey.py` and `app-current.py`:
+
+**From Survey (ppap-survey.py):**
+- Complete 4-question eligibility screening
+- Sequential question flow with progress indicators
+- Contextual help and explanations for each question
+- Eligibility determination logic
+- Detailed ineligibility reasons with recommended actions
+- Survey restart capability
+- Survey response storage
+
+**From PPAP Workspace (app-current.py):**
+- Complete PPAP case management
+- Document ingestion and version control
+- All 7 tabs: Ingestion, Checklist, FAIR Review, OQ Review, PQ Review, Reports, Chat
+- Activity logging and audit trail
+- All mock AI analysis features
+
+**New Integration Features:**
+- Eligibility gating (survey must be passed to create cases)
+- Survey completion status display on case setup page
+- Survey responses attached to each PPAP case
+- Navigation between survey, case setup, and workspace
+- Back buttons to return to previous stages
 
 ### 1. PPAP Case Workspace (Sidebar)
 - Create new PPAP cases with metadata:
@@ -214,59 +266,70 @@ pip install streamlit pandas
 
 ### Running the Applications
 
-**Option 1: Eligibility Survey (Standalone)**
+**Option 1: Integrated Application (Recommended)**
 ```bash
-cd PPAP-AI-chatbot
-streamlit run ppap-survey.py
+streamlit run PPAP-AI-chatbot/app-integrated.py
 ```
+This is the complete workflow: Survey → Case Setup → PPAP Workspace. Users must pass the eligibility survey before creating PPAP cases.
 
-**Option 2: Main PPAP Workspace**
+**Option 2: Eligibility Survey (Standalone)**
 ```bash
-cd PPAP-AI-chatbot
-streamlit run app-current.py
+streamlit run PPAP-AI-chatbot/ppap-survey.py
 ```
+Standalone survey page for testing the eligibility screening flow.
 
-**Option 3: Original Prototype**
+**Option 3: PPAP Workspace (Standalone)**
 ```bash
-cd UI
-streamlit run ppap_review_app.py
+streamlit run PPAP-AI-chatbot/app-current.py
 ```
+Main PPAP workspace without survey gating (for testing document review features directly).
 
-The app will open in your default browser at `http://localhost:8501` (or `8502` if port is in use).
+**Option 4: Original Prototype**
+```bash
+streamlit run UI/ppap_review_app.py
+```
+Initial prototype version.
 
-**Note:** Currently, the survey and main workspace are separate applications. They will be integrated in a future update to provide a seamless user flow from eligibility survey to PPAP case creation.
+The app will open in your default browser at `http://localhost:8501` (or `8502`/`8503` if ports are in use).
 
 ---
 
 ## Usage Guide
 
-### Step 1: Complete Eligibility Survey (ppap-survey.py)
+### Step 1: Complete Eligibility Survey
 
 **Purpose:** Verify that your PPAP is suitable for the automated review system
 
-1. Click "Begin Eligibility Survey" on the welcome page
-2. Answer 4 sequential questions:
-   - Process type and business unit
-   - Product classification (new vs. legacy)
-   - Process verification status
-   - Process parameter specification
-3. Review your eligibility result:
-   - **If Eligible:** Proceed to PPAP Case Setup
-   - **If Ineligible:** Review explanations and recommended actions
+1. Launch the integrated application (`app-integrated.py`)
+2. Click "Begin Eligibility Survey" on the welcome page
+3. Answer 4 sequential questions:
+   - **Q1:** Process type and business unit (molding plastic + Surgical Operation Unit?)
+   - **Q2:** Product classification (new product part?)
+   - **Q3:** Process verification status (process output fully verified?)
+   - **Q4:** Process parameter specification (has parameter ranges, not fixed setpoints?)
+4. Review your eligibility result:
+   - **If Eligible:** Click "🚀 Proceed to PPAP Case Setup" to continue
+   - **If Ineligible:** Review explanations and recommended actions, restart survey if needed
 
 **Eligibility Criteria:**
 - Must be molding plastic processes under Surgical Operation Unit
 - Must be a new product part (not legacy)
 - Must use process parameter ranges (not fixed setpoints)
 
-### Step 2: Creating a PPAP Case (app-current.py)
+### Step 2: Creating a PPAP Case
 
-**Note:** In the integrated version, this will be accessible only after passing the survey
+**Note:** Only accessible after passing the eligibility survey
 
-1. On the case setup page, fill out the "Create New PPAP Case" form
-2. Enter Part Number, Revision, and Supplier
-3. Select QIL level and enter PC/CTF counts
-4. Click "Create Case"
+1. After clicking "Proceed to PPAP Case Setup", fill out the case creation form
+2. Enter required information:
+   - Part Number (e.g., MED-12345)
+   - Revision (e.g., A, B, C)
+   - Supplier name
+   - QIL level (1-7, with 3-4 typical for scope)
+   - PC count (number of Product Characteristic dimensions)
+   - CTF count (number of Critical to Function dimensions)
+3. Click "Create Case" to proceed to PPAP workspace
+4. Survey responses are automatically saved with the case for audit purposes
 
 ### Uploading Documents
 1. Navigate to the "Ingestion & Revision" tab
@@ -336,26 +399,40 @@ survey_eligible: bool         # Final eligibility determination
 survey_completion_date: datetime  # When survey was completed
 ```
 
-### Integration Considerations
+### Integration Implementation
 
-When integrating with the main application:
-1. Survey should be the first page users see
-2. Survey eligibility should gate access to case creation
-3. Survey responses should be stored with PPAP case metadata
-4. Users should be able to review their survey responses later
-5. Admin users might bypass survey (future feature)
+The integrated application (`app-integrated.py`) implements these considerations:
+1. ✅ Survey is the first page users see (SURVEY_WELCOME)
+2. ✅ Survey eligibility gates access to case creation (proceed button only shows if eligible)
+3. ✅ Survey responses are stored with PPAP case metadata (`survey_responses` field)
+4. ✅ Users can review their survey responses on the case setup page (expandable section)
+5. Navigation flow enforced through session state page management
+6. Back buttons allow users to return to survey results or restart survey
 
 ---
 
 ## Recent Updates
 
 ### Latest Improvements (2026-01-28)
-- **Added Eligibility Survey Page:** New standalone survey to screen PPAPs before case creation
-  - 4 sequential questions to determine system suitability
+
+**Integrated Application (app-integrated.py)**
+- **Complete workflow integration:** Survey → Case Setup → PPAP Workspace in single application
+  - Survey eligibility gating ensures only suitable PPAPs can create cases
+  - "Proceed to PPAP Case Setup" button only appears if user passes eligibility screening
+  - Survey responses are saved with each PPAP case for audit purposes
+  - Seamless navigation between survey, case setup, and workspace
+
+- **Added Eligibility Survey:** New screening flow to verify PPAP suitability
+  - 4 sequential questions to determine system compatibility
   - Detailed eligibility logic based on process type, product classification, and process parameters
   - Comprehensive explanations for ineligible users with recommended actions
   - Survey state management and restart capability
-- **Updated documentation:** README now includes survey workflow and eligibility criteria
+  - Progress indicators and contextual help for each question
+
+- **Enhanced case creation flow:**
+  - Survey completion status displayed on case setup page
+  - Back navigation to review or restart survey
+  - Survey responses stored with each case for compliance tracking
 
 ### Previous Updates (2026-01-17)
 - **Fixed audit log and version history display:** Replaced monospace/code-styled dataframe with clean, readable card-based layouts
@@ -368,12 +445,10 @@ When integrating with the main application:
 ## Future Enhancements (Backend Implementation)
 
 ### Immediate Next Steps
-- **Integrate survey with main application:** Combine `ppap-survey.py` and `app-current.py` into unified flow
-  - Survey page as initial entry point
-  - Navigate to case setup only after passing eligibility screening
-  - Store survey responses with PPAP case data
+- ✅ ~~**Integrate survey with main application**~~ **COMPLETED** - `app-integrated.py` now provides complete workflow
 - **Expand eligibility rules:** Support for legacy products with ticket lookup functionality
 - **Survey response validation:** Add checkboxes or additional context fields for ambiguous cases
+- **Multi-step case creation:** Collect PC/CTF dimension values during case setup
 
 ### Planned Features
 - Real AI integration with Medtronic GPT
@@ -401,17 +476,20 @@ When integrating with the main application:
 ```
 Medtronic/
 ├── PPAP-AI-chatbot/
-│   ├── ppap-survey.py         # Eligibility survey page (standalone)
-│   ├── app-current.py         # Main PPAP workspace application
+│   ├── app-integrated.py      # **MAIN APP:** Complete integrated workflow (Survey + Case Setup + Workspace)
+│   ├── ppap-survey.py         # Standalone eligibility survey (for testing)
+│   ├── app-current.py         # Standalone PPAP workspace (for testing)
+│   ├── images.png             # Medtronic logo
 │   └── README.md              # This file
 └── UI/
     └── ppap_review_app.py     # Original prototype
 ```
 
-**Note:** The application is being modularized:
-- `ppap-survey.py`: Standalone survey page for eligibility screening
-- `app-current.py`: Main PPAP case workspace with document review features
-- These will be integrated into a single application in future updates
+**Application Files:**
+- `app-integrated.py`: **RECOMMENDED** - Complete end-to-end workflow with survey gating
+- `ppap-survey.py`: Standalone survey page for testing eligibility screening
+- `app-current.py`: Standalone PPAP workspace for testing document review features
+- `ppap_review_app.py`: Original prototype for reference
 
 ---
 
